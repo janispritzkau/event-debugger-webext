@@ -15,9 +15,12 @@ const SHADOW_CSS = /* css */ `
 :host {
   all: initial !important;
   position: fixed !important;
-  inset: 0 auto auto 0 !important;
+  inset: 0 !important;
 	pointer-events: none !important;
-  z-index: 2147483647 !important;
+}
+
+:host::backdrop {
+  all: initial !important;
 }
 
 pre {
@@ -80,6 +83,8 @@ const COLOR_BY_EVENT = new Map(
 
 function initialize() {
   const container = document.createElement("div");
+  container.popover = "manual";
+
   const shadow = container.attachShadow({ mode: "closed" });
 
   const sheet = new CSSStyleSheet();
@@ -122,21 +127,18 @@ function initialize() {
         count++;
       }
 
-      let html = `<b style="color: ${COLOR_BY_EVENT.get(event.type)}">[${
-        event.type
-      }${count > 1 ? ` x${count}` : ""}]</b>`;
+      let html = `<b style="color: ${COLOR_BY_EVENT.get(event.type)}">[${event.type}${
+        count > 1 ? ` x${count}` : ""
+      }]</b>`;
 
       if (event instanceof PointerEvent) {
         html += ` id=<b>${event.pointerId}</b>`;
         html += ` type=<b style="color: #67e8f9">${event.pointerType}</b>`;
-        if (!event.isPrimary)
-          html += ` primary=<b>${formatBoolean(event.isPrimary)}</b>`;
+        if (!event.isPrimary) html += ` primary=<b>${formatBoolean(event.isPrimary)}</b>`;
       }
 
       if (event instanceof WheelEvent) {
-        html += ` delta=<b>(${event.deltaX.toFixed(0)}, ${event.deltaY.toFixed(
-          0
-        )})</b>`;
+        html += ` delta=<b>(${event.deltaX.toFixed(0)}, ${event.deltaY.toFixed(0)})</b>`;
         html += ` mode=<b>${event.deltaMode}</b>`;
       }
 
@@ -151,23 +153,17 @@ function initialize() {
         if (event.buttons & 4) buttons.push("auxiliary");
         if (event.buttons & 8) buttons.push("fourth");
         if (event.buttons & 16) buttons.push("fifth");
-        html += ` pos=<b>(${event.clientX.toFixed(0)}, ${event.clientY.toFixed(
-          0
-        )})</b>`;
+        html += ` pos=<b>(${event.clientX.toFixed(0)}, ${event.clientY.toFixed(0)})</b>`;
         if (buttons.length) html += ` buttons=<b>[${buttons.join(", ")}]</b>`;
       }
 
       if (event instanceof KeyboardEvent) {
         html += ` code=<b>${event.code}</b>`;
-        if (event.repeat)
-          html += ` repeat=<b>${formatBoolean(event.repeat)}</b>`;
-        if (event.shiftKey)
-          html += ` shift=<b>${formatBoolean(event.shiftKey)}</b>`;
-        if (event.ctrlKey)
-          html += ` ctrl=<b>${formatBoolean(event.ctrlKey)}</b>`;
+        if (event.repeat) html += ` repeat=<b>${formatBoolean(event.repeat)}</b>`;
+        if (event.shiftKey) html += ` shift=<b>${formatBoolean(event.shiftKey)}</b>`;
+        if (event.ctrlKey) html += ` ctrl=<b>${formatBoolean(event.ctrlKey)}</b>`;
         if (event.altKey) html += ` alt=<b>${formatBoolean(event.altKey)}</b>`;
-        if (event.metaKey)
-          html += ` meta=<b>${formatBoolean(event.metaKey)}</b>`;
+        if (event.metaKey) html += ` meta=<b>${formatBoolean(event.metaKey)}</b>`;
         if (event.location) html += ` location=<b>${event.location}</b>`;
       }
 
@@ -199,12 +195,29 @@ function initialize() {
     capturingEvents.add(event);
   };
 
+  /** @param {Event} event */
+  const showPopover = (event) => {
+    if (event?.target == container) return;
+    // force popover to show on top
+    container.hidePopover();
+    container.showPopover();
+  };
+
+  addEventListener("focusin", showPopover, { capture: true }); // triggered on modal dialogs
+  addEventListener("toggle", showPopover, { capture: true }); // other popovers
+  document.addEventListener("fullscreenchange", showPopover, { capture: true });
+  showPopover();
+
   for (const event of EVENTS) {
     addEventListener(event, onEvent, { capture: true });
     addEventListener(event, onEvent, { capture: false });
   }
 
   return () => {
+    removeEventListener("focusin", showPopover, { capture: true });
+    removeEventListener("toggle", showPopover, { capture: true });
+    document.removeEventListener("fullscreenchange", showPopover, { capture: true });
+
     container.remove();
 
     for (const event of EVENTS) {
