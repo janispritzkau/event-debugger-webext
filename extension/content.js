@@ -15,7 +15,7 @@ const SHADOW_CSS = /* css */ `
 :host {
   all: initial !important;
   position: fixed !important;
-  inset: 0 auto 0 !important;
+  inset: 0 auto auto 0 !important;
 	pointer-events: none !important;
   z-index: 2147483647 !important;
 }
