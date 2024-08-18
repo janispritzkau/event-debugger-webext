@@ -78,8 +78,6 @@ const COLOR_BY_EVENT = new Map(
   )
 );
 
-console.log(COLOR_BY_EVENT);
-
 function initialize() {
   const container = document.createElement("div");
   const shadow = container.attachShadow({ mode: "closed" });
@@ -215,5 +213,3 @@ function initialize() {
     }
   };
 }
-
-initialize();
