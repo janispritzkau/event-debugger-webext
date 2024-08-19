@@ -16,7 +16,7 @@ const SHADOW_CSS = /* css */ `
   all: initial !important;
   position: fixed !important;
   inset: 0 !important;
-	pointer-events: none !important;
+  pointer-events: none !important;
 }
 
 :host::backdrop {
@@ -29,19 +29,19 @@ pre {
 }
 
 pre:empty {
-	display: none;
+  display: none;
 }
 
 div {
-	width: max-content;
-	line-height: 20px;
-	padding: 0 0.25em;
-	transition: opacity 0.5s 2s;
+  width: max-content;
+  line-height: 20px;
+  padding: 0 0.25em;
+  transition: opacity 0.5s 2s;
   background: #000d;
 }
 
 b {
-	color: #fff;
+  color: #fff;
 }
 `;
 
@@ -99,21 +99,7 @@ function initialize() {
   /** @type {WeakSet<Event>} */
   const capturingEvents = new WeakSet();
 
-  /** @type {Map<string, (event: Event) => boolean>} */
-  const updateEvent = new Map();
-
-  /** @param {Event} event */
-  const onEvent = (event) => {
-    if (event.eventPhase != Event.CAPTURING_PHASE) {
-      capturingEvents.delete(event);
-      return;
-    }
-
-    if (updateEvent.get(event.type)?.(event)) {
-      capturingEvents.add(event);
-      return;
-    }
-
+  const createLine = () => {
     const line = document.createElement("div");
     let count = 0;
 
@@ -172,7 +158,6 @@ function initialize() {
       }
 
       line.innerHTML = html;
-      // pre.prepend(line);
 
       line.style.transition = "none";
       line.style.opacity = "1";
@@ -183,15 +168,35 @@ function initialize() {
       return true;
     };
 
+    return { line, update };
+  };
+
+  /** @type {Map<string, (event: Event) => boolean>} */
+  const updateEventLine = new Map();
+
+  /** @param {Event} event */
+  const onEvent = (event) => {
+    if (event.eventPhase != Event.CAPTURING_PHASE) {
+      capturingEvents.delete(event);
+      return;
+    }
+
+    if (updateEventLine.get(event.type)?.(event)) {
+      capturingEvents.add(event);
+      return;
+    }
+
+    const { line, update } = createLine();
+
+    pre.appendChild(line);
+    update(event);
+
     line.addEventListener("transitionend", () => {
-      updateEvent.delete(event.type);
+      updateEventLine.delete(event.type);
       line.remove();
     });
 
-    pre.append(line);
-    update(event);
-
-    updateEvent.set(event.type, update);
+    updateEventLine.set(event.type, update);
     capturingEvents.add(event);
   };
 
