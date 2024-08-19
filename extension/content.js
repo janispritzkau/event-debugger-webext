@@ -102,20 +102,16 @@ function initialize() {
   const createLine = () => {
     const line = document.createElement("div");
     let count = 0;
+    let frame = 0;
 
     const formatBoolean = (value) =>
       `<span style="color: ${value ? "#4ade80" : "#f87171"}">${value}</span>`;
 
     /** @param {Event} event */
-    const update = (event) => {
-      if (event.eventPhase == Event.CAPTURING_PHASE) {
-        requestAnimationFrame(() => update(event));
-        count++;
-      }
-
-      let html = `<b style="color: ${COLOR_BY_EVENT.get(event.type)}">[${event.type}${
-        count > 1 ? ` x${count}` : ""
-      }]</b>`;
+    const render = (event) => {
+      const eventColor = COLOR_BY_EVENT.get(event.type);
+      const countStr = count > 1 ? ` x${count}` : "";
+      let html = `<b style="color: ${eventColor}">[${event.type}${countStr}]</b>`;
 
       if (event instanceof PointerEvent) {
         html += ` id=<b>${event.pointerId}</b>`;
@@ -164,6 +160,14 @@ function initialize() {
       line.offsetHeight;
       line.style.transition = "";
       line.style.opacity = "0";
+    };
+
+    /** @param {Event} event */
+    const update = (event) => {
+      if (event.eventPhase == Event.CAPTURING_PHASE) count++;
+
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => render(event));
 
       return true;
     };
@@ -178,6 +182,7 @@ function initialize() {
   const onEvent = (event) => {
     if (event.eventPhase != Event.CAPTURING_PHASE) {
       capturingEvents.delete(event);
+      updateEventLine.get(event.type)?.(event);
       return;
     }
 
